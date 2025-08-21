@@ -1,0 +1,92 @@
+import express from 'express';
+import cors from 'cors';
+import multer from 'multer';
+import { S3Client, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config();
+
+const app = express();
+const port = process.env.PORT || 4000;
+
+// Configure CORS to allow your frontend origin or all for demo:
+app.use(cors());
+app.use(express.json());
+
+// Multer setup for multipart form data handling
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+const s3Client = new S3Client({
+  region: process.env.R2_REGION,
+  endpoint: process.env.R2_ENDPOINT, // e.g. 'https://<account_id>.r2.cloudflarestorage.com'
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+  },
+  forcePathStyle: false, // important for R2
+});
+
+const bucketName = process.env.R2_BUCKET_NAME; // your bucket name
+
+// List images in 'telekom' folder
+app.get('/api/images', async (req, res) => {
+  try {
+    const command = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: 'telekom/',
+    });
+    const data = await s3Client.send(command);
+
+    // Map objects to a simplified list with url, key, and lastModified
+    const images = (data.Contents || []).map((obj) => ({
+      key: obj.Key,
+      url: `https://${process.env.R2_PUBLIC_URL}/${obj.Key}`,
+      lastModified: obj.LastModified,
+      filename: path.basename(obj.Key),
+    }));
+
+    res.json(images);
+  } catch (err) {
+    console.error('Error listing images:', err);
+    res.status(500).json({ error: 'Failed to list images' });
+  }
+});
+
+// Upload images endpoint
+app.post('/api/upload', upload.array('images'), async (req, res) => {
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ error: 'No files uploaded' });
+  }
+
+  try {
+    // Upload each file to R2 bucket under 'telekom/' folder
+    const uploadPromises = req.files.map((file) => {
+      const key = `telekom/${Date.now()}_${file.originalname}`; // unique key
+
+      const command = new PutObjectCommand({
+        Bucket: bucketName,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        // Optional metadata could go here
+      });
+      return s3Client.send(command).then(() => ({
+        key,
+        url: `https://${process.env.R2_PUBLIC_URL}/${key}`,
+        filename: file.originalname,
+      }));
+    });
+
+    const uploadedFiles = await Promise.all(uploadPromises);
+    res.json({ uploaded: uploadedFiles });
+  } catch (err) {
+    console.error('Upload error:', err);
+    res.status(500).json({ error: 'Upload failed' });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+});
