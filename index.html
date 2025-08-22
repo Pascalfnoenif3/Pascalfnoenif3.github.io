@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magenta Image Board</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff00ff, #c71585, #9932cc);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 0, 255, 0.3);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(255, 0, 255, 0.8);
+            background: linear-gradient(45deg, #ff00ff, #ffffff, #ff69b4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .upload-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 0, 255, 0.3);
+        }
+
+        .upload-area {
+            border: 3px dashed #ff00ff;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: rgba(255, 0, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            background: rgba(255, 0, 255, 0.2);
+            transform: scale(1.02);
+        }
+
+        .upload-area.dragover {
+            background: rgba(255, 0, 255, 0.3);
+            border-color: #ff69b4;
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #ff00ff;
+            text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+        }
+
+        .upload-text {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(45deg, #ff00ff, #c71585);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(255, 0, 255, 0.3);
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 0, 255, 0.5);
+        }
+
+        .preview-section {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .preview-item {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .preview-img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+
+        .preview-remove {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255, 0, 255, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-progress {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #ff00ff, #ff69b4);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .image-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 0, 255, 0.2);
+            transition: all 0.3s ease;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .image-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(255, 0, 255, 0.3);
+            border-color: rgba(255, 0, 255, 0.5);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+
+        .image-info {
+            padding: 15px;
+        }
+
+        .image-filename {
+            font-weight: bold;
+            color: #ff69b4;
+            margin-bottom: 5px;
+            word-break: break-word;
+        }
+
+        .image-date {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2rem;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #ff00ff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .modal-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 0, 255, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 1.5rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .empty-state .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: rgba(255, 0, 255, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .gallery {
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 15px;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✨ Magenta Gallery ✨</h1>
+            <p>Share your images with the world - No login required!</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📸</div>
+                <div class="upload-text">Click to upload images or drag & drop</div>
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose Files</button>
+                <input type="file" id="fileInput" class="file-input" multiple accept="image/*">
+            </div>
+
+            <div class="preview-section" id="previewSection">
+                <h3 style="margin-bottom: 15px; color: #ff69b4;">Preview:</h3>
+                <div class="preview-grid" id="previewGrid"></div>
+                <button class="upload-btn" id="uploadBtn" onclick="uploadImages()">Upload Images</button>
+            </div>
+
+            <div class="upload-progress" id="uploadProgress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="progressText">Uploading...</div>
+            </div>
+        </div>
+
+        <div class="loading" id="loadingState">
+            <div class="spinner"></div>
+            <div>Loading images...</div>
+        </div>
+
+        <div class="gallery" id="gallery"></div>
+    </div>
+
+    <!-- Modal for image viewing -->
+    <div class="modal" id="imageModal">
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <div class="modal-content">
+            <img class="modal-image" id="modalImage" src="" alt="">
+        </div>
+    </div>
+
+    <script>
+        // Simulated data storage (in real implementation, this would be backend API calls)
+        const STORAGE_KEY = 'magenta_gallery_images';
+        const BUCKET_URL = 'https://pub-cdc51e693e8e4ec68d75d2bccf0c2c35.r2.dev';
+        
+        let selectedFiles = [];
+        let allImages = [];
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            loadImages();
+        });
+
+        function setupEventListeners() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+
+            // File input change event
+            fileInput.addEventListener('change', handleFileSelect);
+
+            // Drag and drop events
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleDrop);
+
+            // Click to upload
+            uploadArea.addEventListener('click', () => fileInput.click());
+
+            // Modal events
+            document.getElementById('imageModal').addEventListener('click', closeModal);
+            document.getElementById('modalImage').addEventListener('click', (e) => e.stopPropagation());
+        }
+
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            addFilesToPreview(files);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('uploadArea').classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('uploadArea').classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('uploadArea').classList.remove('dragover');
+            
+            const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+            addFilesToPreview(files);
+        }
+
+        function addFilesToPreview(files) {
+            selectedFiles = [...selectedFiles, ...files];
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const previewSection = document.getElementById('previewSection');
+            const previewGrid = document.getElementById('previewGrid');
+            
+            if (selectedFiles.length === 0) {
+                previewSection.style.display = 'none';
+                return;
+            }
+
+            previewSection.style.display = 'block';
+            previewGrid.innerHTML = '';
+
+            selectedFiles.forEach((file, index) => {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-item';
+                
+                const img = document.createElement('img');
+                img.className = 'preview-img';
+                img.src = URL.createObjectURL(file);
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'preview-remove';
+                removeBtn.innerHTML = '×';
+                removeBtn.onclick = () => removeFromPreview(index);
+                
+                previewItem.appendChild(img);
+                previewItem.appendChild(removeBtn);
+                previewGrid.appendChild(previewItem);
+            });
+        }
+
+        function removeFromPreview(index) {
+            selectedFiles.splice(index, 1);
+            updatePreview();
+        }
+
+        async function uploadImages() {
+            if (selectedFiles.length === 0) return;
+
+            const progressSection = document.getElementById('uploadProgress');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            progressSection.style.display = 'block';
+            
+            // Simulate upload process
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                const progress = ((i + 1) / selectedFiles.length) * 100;
+                
+                progressFill.style.width = progress + '%';
+                progressText.textContent = `Uploading ${i + 1} of ${selectedFiles.length} images...`;
+                
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // In real implementation, upload to Cloudflare R2 here
+                // For demo, we'll store in localStorage
+                const imageData = {
+                    id: Date.now() + i,
+                    filename: file.name,
+                    uploadDate: new Date().toISOString(),
+                    url: URL.createObjectURL(file),
+                    size: file.size
+                };
+                
+                saveImageToStorage(imageData);
+                addImageToGallery(imageData);
+            }
+            
+            // Reset upload state
+            selectedFiles = [];
+            document.getElementById('fileInput').value = '';
+            updatePreview();
+            progressSection.style.display = 'none';
+            progressFill.style.width = '0%';
+        }
+
+        function saveImageToStorage(imageData) {
+            let stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            stored.push(imageData);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+        }
+
+        async function loadImages() {
+            const loadingState = document.getElementById('loadingState');
+            const gallery = document.getElementById('gallery');
+            
+            loadingState.style.display = 'block';
+            
+            // Simulate loading delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // In real implementation, fetch from Cloudflare R2 here
+            // For demo, load from localStorage
+            const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            allImages = stored;
+            
+            loadingState.style.display = 'none';
+            
+            if (allImages.length === 0) {
+                showEmptyState();
+            } else {
+                allImages.forEach(imageData => addImageToGallery(imageData));
+            }
+        }
+
+        function showEmptyState() {
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = `
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <div class="icon">📷</div>
+                    <h3>No images yet</h3>
+                    <p>Upload some images to get started!</p>
+                </div>
+            `;
+        }
+
+        function addImageToGallery(imageData) {
+            const gallery = document.getElementById('gallery');
+            
+            // Remove empty state if it exists
+            const emptyState = gallery.querySelector('.empty-state');
+            if (emptyState) {
+                gallery.innerHTML = '';
+            }
+            
+            const imageCard = document.createElement('div');
+            imageCard.className = 'image-card';
+            imageCard.innerHTML = `
+                <img src="${imageData.url}" alt="${imageData.filename}" onclick="openModal('${imageData.url}')">
+                <div class="image-info">
+                    <div class="image-filename">${imageData.filename}</div>
+                    <div class="image-date">${formatDate(imageData.uploadDate)}</div>
+                </div>
+            `;
+            
+            gallery.appendChild(imageCard);
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        }
+
+        function openModal(imageSrc) {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            
+            modalImage.src = imageSrc;
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('imageModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
